@@ -6,6 +6,7 @@ from Crypto.Cipher import AES
 
 from chat_client import ChatClient
 from generic_callback import GenericCallback
+from source.basic_gui import BasicGUI
 
 # default values used to populate connection window
 DEFAULT_VALUES = {
@@ -16,7 +17,7 @@ DEFAULT_VALUES = {
     "key" : b"my_key"
 }
 
-class CipheredGUI:
+class CipheredGUI(BasicGUI):
     """
     GUI for a chat client. Secured by William LABBE.
     """
@@ -90,9 +91,7 @@ class CipheredGUI:
         
         salt = b"sel_de_guerande"
         self._key = hashlib.pbkdf2_hmac("sha256", password.encode(), salt, 100000)
-        
-        
-        
+
         self._callback = GenericCallback()
 
         self._client = ChatClient(host, port)
@@ -116,24 +115,26 @@ class CipheredGUI:
                 self.update_text_screen(f"{user} : {message}")
             self._callback.clear()
 
+
+ 
     def encrypt(self,text)->None:
         key = os.urandom(32)
         iv = os.urandom(16)
-        cipher = AES.new(key, AES.MODE_CBC, iv)
+        cipher = AES.new(self._key, AES.MODE_CBC, iv)
         padded_text = text.encode('utf-8') + (16 - len(text) % 16) * b'\0'
         encrypted_text = cipher.encrypt(padded_text)
         return (iv, encrypted_text)
 
-    def decrypt(data):
+    def decrypt(self,data)->None:
         iv, encrypted_text = data 
-        cipher = AES.new(key, AES.MODE_CBC, iv)
+        cipher = AES.new(self._key, AES.MODE_CBC, iv)
         decrypted_text = cipher.decrypt(encrypted_text)
         text = decrypted_text.rstrip(b'\0').decode('utf-8')
         return text
 
     def send(self, text)->None:
         # function called to send a message to all (broadcasting)
-        encrypted_text = encrypt(text)
+        encrypted_text = self.encrypt(text)
         self._client.send_message(encrypted_text)
 
     def loop(self):
